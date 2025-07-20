@@ -39,6 +39,14 @@
 
 - `setInitialized()`: 앱 초기화 완료 표시
 
+#### DevTools 기능
+
+- **Redux DevTools 지원**: 브라우저 개발자 도구에서 상태 변화 추적
+- **액션 로깅**: 모든 액션에 대한 상세한 로그
+- **상태 내보내기/가져오기**: JSON 형태로 상태 저장 및 복원
+- **상태 통계**: 현재 상태에 대한 통계 정보
+- **상태 리셋**: 개발 환경에서 상태 초기화
+
 ## 사용 방법
 
 ### 기본 사용법
@@ -157,6 +165,30 @@ import { ApiIpModal } from "@/components/api-ip-modal";
 const [showModal, setShowModal] = useState(false);
 
 <ApiIpModal isOpen={showModal} onClose={() => setShowModal(false)} />;
+```
+
+## DevTools 사용법
+
+### Redux DevTools
+
+1. 브라우저에서 Redux DevTools 확장 프로그램 설치
+2. 개발자 도구에서 Redux 탭 열기
+3. 모든 상태 변화와 액션을 실시간으로 확인
+
+### DevTools 유틸리티
+
+```typescript
+import { devToolsUtils } from "../stores";
+
+// 상태 내보내기
+devToolsUtils.exportState();
+
+// 상태 통계 확인
+const stats = devToolsUtils.getStateStats();
+console.log(stats);
+
+// 상태 리셋 (개발 환경에서만)
+devToolsUtils.resetState();
 ```
 
 ## 예제 컴포넌트
