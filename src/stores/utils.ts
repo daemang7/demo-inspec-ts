@@ -55,11 +55,13 @@ export const useStoreState = () => {
   const api_ip = useAppStore((state) => state.api_ip);
   const offline_mode = useAppStore((state) => state.offline_mode);
   const offline_data = useAppStore((state) => state.offline_data);
+  const isInitialized = useAppStore((state) => state.isInitialized);
 
   return {
     api_ip,
     offline_mode,
     offline_data,
+    isInitialized,
   };
 };
 
@@ -78,6 +80,7 @@ export const useStoreActions = () => {
   const clearAllInspections = useAppStore((state) => state.clearAllInspections);
   const getInspectionsByLocation = useAppStore((state) => state.getInspectionsByLocation);
   const getInspectionsByCondition = useAppStore((state) => state.getInspectionsByCondition);
+  const setInitialized = useAppStore((state) => state.setInitialized);
 
   return {
     setApiIp,
@@ -93,5 +96,6 @@ export const useStoreActions = () => {
     clearAllInspections,
     getInspectionsByLocation,
     getInspectionsByCondition,
+    setInitialized,
   };
 };

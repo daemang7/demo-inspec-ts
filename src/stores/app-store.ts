@@ -6,6 +6,7 @@ interface AppState {
   api_ip: string;
   offline_mode: boolean;
   offline_data: Inspection[];
+  isInitialized: boolean;
 
   // Actions for api_ip
   setApiIp: (ip: string) => void;
@@ -25,6 +26,9 @@ interface AppState {
   clearAllInspections: () => void;
   getInspectionsByLocation: (location: string) => Inspection[];
   getInspectionsByCondition: (condition: Inspection["condition"]) => Inspection[];
+
+  // Initialization
+  setInitialized: () => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -32,6 +36,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   api_ip: "",
   offline_mode: false,
   offline_data: [],
+  isInitialized: false,
 
   // api_ip actions
   setApiIp: (ip: string) => {
@@ -90,5 +95,10 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   getInspectionsByCondition: (condition: Inspection["condition"]) => {
     return get().offline_data.filter((inspection) => inspection.condition === condition);
+  },
+
+  // Initialization
+  setInitialized: () => {
+    set({ isInitialized: true });
   },
 }));

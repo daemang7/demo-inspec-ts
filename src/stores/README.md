@@ -9,6 +9,7 @@
 1. **api_ip** (string): IPv4 형식의 API 서버 IP 주소
 2. **offline_mode** (boolean): 오프라인 모드 활성화 상태
 3. **offline_data** (Inspection[]): 오프라인에서 저장된 inspection 데이터 배열
+4. **isInitialized** (boolean): 앱 초기화 완료 상태
 
 ### CRUD Operations
 
@@ -33,6 +34,10 @@
 - `clearAllInspections()`: 모든 inspection 삭제
 - `getInspectionsByLocation(location: string)`: 위치별 inspection 필터링
 - `getInspectionsByCondition(condition: Inspection['condition'])`: 상태별 inspection 필터링
+
+#### 초기화 관리
+
+- `setInitialized()`: 앱 초기화 완료 표시
 
 ## 사용 방법
 
@@ -127,6 +132,31 @@ const MyComponent = () => {
     </div>
   );
 };
+```
+
+## API IP 모달 기능
+
+앱이 최초 시작될 때 API IP가 설정되지 않은 경우 자동으로 모달이 표시됩니다.
+
+### ApiIpGuard 컴포넌트
+
+```typescript
+import { ApiIpGuard } from "@/components/api-ip-guard";
+
+// App.tsx에서 사용
+<ApiIpGuard showModalOnEmpty={true} forceShowOnStart={true}>
+  <YourApp />
+</ApiIpGuard>;
+```
+
+### ApiIpModal 컴포넌트
+
+```typescript
+import { ApiIpModal } from "@/components/api-ip-modal";
+
+const [showModal, setShowModal] = useState(false);
+
+<ApiIpModal isOpen={showModal} onClose={() => setShowModal(false)} />;
 ```
 
 ## 예제 컴포넌트

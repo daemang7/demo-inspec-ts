@@ -1,9 +1,10 @@
 import React, { useState } from "react";
 import { useStoreState, useStoreActions, storeUtils } from "../stores";
 import { Inspection } from "../types/schema";
+import { ApiIpModal } from "./api-ip-modal";
 
 export const StoreExample: React.FC = () => {
-  const { api_ip, offline_mode, offline_data } = useStoreState();
+  const { api_ip, offline_mode, offline_data, isInitialized } = useStoreState();
   const {
     setApiIp,
     setOfflineMode,
@@ -14,6 +15,8 @@ export const StoreExample: React.FC = () => {
     getAllInspections,
     clearAllInspections,
   } = useStoreActions();
+
+  const [showApiIpModal, setShowApiIpModal] = useState(false);
 
   const [newIp, setNewIp] = useState("");
   const [newInspection, setNewInspection] = useState<Omit<Inspection, "id">>({
@@ -63,8 +66,20 @@ export const StoreExample: React.FC = () => {
           >
             Set IP
           </button>
+          <button
+            onClick={() => setShowApiIpModal(true)}
+            className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          >
+            Open Modal
+          </button>
         </div>
         <p>Current API IP: {api_ip || "Not set"}</p>
+        <p className="text-sm text-gray-600">App Initialized: {isInitialized ? "Yes" : "No"}</p>
+        {!api_ip && (
+          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+            <p className="text-yellow-800 text-sm">⚠️ API IP가 설정되지 않았습니다. 모달을 통해 설정해주세요.</p>
+          </div>
+        )}
       </div>
 
       {/* Offline Mode Section */}
@@ -195,6 +210,9 @@ export const StoreExample: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* API IP Modal */}
+      <ApiIpModal isOpen={showApiIpModal} onClose={() => setShowApiIpModal(false)} />
     </div>
   );
 };
