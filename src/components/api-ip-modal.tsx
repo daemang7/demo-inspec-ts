@@ -6,47 +6,42 @@ const testApiConnection = async (ipAddress: string): Promise<{ success: boolean;
   try {
     console.log(`Testing connection to: http://${ipAddress}/api/inspections`);
 
-    // CORS 문제를 우회하기 위해 mode: 'no-cors' 사용
-    const response = await fetch(`http://${ipAddress}/api/inspections`, {
-      method: "GET",
-      mode: "no-cors", // CORS 정책 무시
-      headers: {
-        "Content-Type": "application/json",
-      },
-      // 5초 타임아웃 설정
-      signal: AbortSignal.timeout(5000),
-    });
+    // 새로운 API 클라이언트 사용
+    const { apiRequest } = await import("../lib/api-client");
 
-    console.log(`Response status: ${response.status}`);
-    console.log(`Response ok: ${response.ok}`);
-    console.log(`Response type: ${response.type}`);
+    // 임시로 api_ip를 설정하여 테스트
+    const originalApiIp = useAppStore.getState().api_ip;
+    useAppStore.getState().setApiIp(ipAddress);
 
-    // no-cors 모드에서는 response.ok가 항상 false이므로 다른 방법으로 확인
-    if (response.type === "opaque") {
-      // opaque 응답은 서버에 도달했다는 의미
+    try {
+      const response = await apiRequest.get("/api/inspections");
+
+      // 원래 api_ip 복원
+      if (originalApiIp) {
+        useAppStore.getState().setApiIp(originalApiIp);
+      }
+
       return { success: true };
-    }
+    } catch (apiError) {
+      // 원래 api_ip 복원
+      if (originalApiIp) {
+        useAppStore.getState().setApiIp(originalApiIp);
+      }
 
-    return { success: response.ok };
+      if (apiError instanceof Error) {
+        return {
+          success: false,
+          error: apiError.message,
+        };
+      }
+
+      return {
+        success: false,
+        error: "Unknown connection error",
+      };
+    }
   } catch (error) {
     console.error("API connection test failed:", error);
-
-    // CORS 에러인지 확인
-    if (error instanceof TypeError && error.message.includes("CORS")) {
-      return {
-        success: false,
-        error:
-          "CORS error: The server doesn't allow cross-origin requests. This is likely a server configuration issue.",
-      };
-    }
-
-    // 네트워크 에러인지 확인
-    if (error instanceof TypeError && error.message.includes("fetch")) {
-      return {
-        success: false,
-        error: "Network error: Unable to connect to the server. Please check the IP address and network connection.",
-      };
-    }
 
     return {
       success: false,

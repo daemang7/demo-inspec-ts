@@ -142,6 +142,62 @@ const MyComponent = () => {
 };
 ```
 
+## API 클라이언트 기능
+
+모든 API 통신에서 zustand store의 `api_ip` 값을 사용하며, 오류 발생 시 자동으로 api-ip-modal을 표시합니다.
+
+### API 클라이언트 사용법
+
+```typescript
+import { useApiRequest } from "../hooks";
+
+const MyComponent = () => {
+  const { data, loading, error, get, post, showApiIpModal, closeApiIpModal } = useApiRequest<Inspection[]>();
+
+  const handleLoadData = async () => {
+    try {
+      await get("/api/inspections", {
+        onSuccess: (data) => {
+          console.log("Data loaded:", data);
+        },
+        onError: (error) => {
+          console.error("Failed to load data:", error);
+        },
+      });
+    } catch (error) {
+      // 에러는 자동으로 처리됨
+    }
+  };
+
+  return (
+    <div>
+      <button onClick={handleLoadData}>Load Data</button>
+      {loading && <p>Loading...</p>}
+      {error && <p>Error: {error.message}</p>}
+      {data && <p>Data loaded: {data.length} items</p>}
+    </div>
+  );
+};
+```
+
+### 직접 API 클라이언트 사용
+
+```typescript
+import { apiRequest } from "../lib/api-client";
+
+// GET 요청
+const response = await apiRequest.get("/api/inspections");
+
+// POST 요청
+const newData = await apiRequest.post("/api/inspections", { name: "test" });
+
+// PUT 요청
+const updatedData = await apiRequest.put("/api/inspections/1", { name: "updated" });
+
+// DELETE 요청
+await apiRequest.delete("/api/inspections/1");
+```
+
 ## API IP 모달 기능
 
 앱이 최초 시작될 때 API IP가 설정되지 않은 경우 자동으로 모달이 표시됩니다.

@@ -62,3 +62,6 @@ export * from "./store-example";
 // API IP Components
 export * from "./api-ip-modal";
 export * from "./api-ip-guard";
+
+// API Example Components
+export * from "./api-example";

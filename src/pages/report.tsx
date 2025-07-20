@@ -4,13 +4,24 @@ import MobileLayout from "@/components/mobile-layout";
 import { Inspection } from "@shared/schema";
 
 export default function Report() {
-  const { data: inspections = [], isLoading } = useQuery<Inspection[]>({
+  const {
+    data: inspections,
+    isLoading,
+    error,
+  } = useQuery<Inspection[]>({
     queryKey: ["/api/inspections"],
   });
 
-  const totalInspections = inspections.length;
-  const passedInspections = inspections.filter((i) => ["excellent", "good"].includes(i.condition)).length;
-  const failedInspections = inspections.filter((i) =>
+  console.log("Report - inspections data:", inspections);
+  console.log("Report - isLoading:", isLoading);
+  console.log("Report - error:", error);
+
+  // inspections가 undefined일 수 있으므로 안전하게 처리
+  const inspectionsArray = Array.isArray(inspections) ? inspections : [];
+
+  const totalInspections = inspectionsArray.length;
+  const passedInspections = inspectionsArray.filter((i) => ["excellent", "good"].includes(i.condition)).length;
+  const failedInspections = inspectionsArray.filter((i) =>
     ["fair", "poor", "needs-replacement"].includes(i.condition)
   ).length;
   const passRate = totalInspections > 0 ? Math.round((passedInspections / totalInspections) * 100) : 0;
@@ -24,7 +35,7 @@ export default function Report() {
       "needs-replacement": 0,
     };
 
-    inspections.forEach((inspection) => {
+    inspectionsArray.forEach((inspection) => {
       if (stats.hasOwnProperty(inspection.condition)) {
         stats[inspection.condition as keyof typeof stats]++;
       }
@@ -133,7 +144,7 @@ export default function Report() {
         ) : (
           <div className="space-y-3">
             {["January", "February", "March", "April", "May", "June"].map((month, index) => {
-              const monthInspections = inspections.filter((i) => new Date(i.date).getMonth() === index);
+              const monthInspections = inspectionsArray.filter((i) => new Date(i.date).getMonth() === index);
               const monthPassed = monthInspections.filter((i) => ["excellent", "good"].includes(i.condition)).length;
               const monthTotal = monthInspections.length;
               const monthPassRate = monthTotal > 0 ? Math.round((monthPassed / monthTotal) * 100) : 0;

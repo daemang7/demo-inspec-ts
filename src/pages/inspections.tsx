@@ -4,9 +4,20 @@ import MobileLayout from "@/components/mobile-layout";
 import { Inspection } from "@shared/schema";
 
 export default function Inspections() {
-  const { data: inspections = [], isLoading } = useQuery<Inspection[]>({
+  const {
+    data: inspections,
+    isLoading,
+    error,
+  } = useQuery<Inspection[]>({
     queryKey: ["/api/inspections"],
   });
+
+  console.log("Inspections - inspections data:", inspections);
+  console.log("Inspections - isLoading:", isLoading);
+  console.log("Inspections - error:", error);
+
+  // inspections가 undefined일 수 있으므로 안전하게 처리
+  const inspectionsArray = Array.isArray(inspections) ? inspections : [];
 
   const getConditionColor = (condition: string) => {
     switch (condition) {
@@ -44,18 +55,18 @@ export default function Inspections() {
       <div className="inspection-card p-4">
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <div className="text-2xl font-bold text-primary">{inspections.length}</div>
+            <div className="text-2xl font-bold text-primary">{inspectionsArray.length}</div>
             <div className="text-xs text-muted-foreground">Total</div>
           </div>
           <div>
             <div className="text-2xl font-bold text-green-600">
-              {inspections.filter(i => ['excellent', 'good'].includes(i.condition)).length}
+              {inspectionsArray.filter((i) => ["excellent", "good"].includes(i.condition)).length}
             </div>
             <div className="text-xs text-muted-foreground">Passed</div>
           </div>
           <div>
             <div className="text-2xl font-bold text-yellow-600">
-              {inspections.filter(i => ['fair', 'poor', 'needs-replacement'].includes(i.condition)).length}
+              {inspectionsArray.filter((i) => ["fair", "poor", "needs-replacement"].includes(i.condition)).length}
             </div>
             <div className="text-xs text-muted-foreground">Need Attention</div>
           </div>
@@ -72,15 +83,19 @@ export default function Inspections() {
               <div className="h-3 bg-gray-200 rounded w-2/3"></div>
             </div>
           ))
-        ) : inspections.length > 0 ? (
-          inspections.map((inspection) => (
+        ) : inspectionsArray.length > 0 ? (
+          inspectionsArray.map((inspection) => (
             <div key={inspection.id} className="inspection-card p-4">
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center space-x-3">
                   {getStatusIcon(inspection.condition)}
                   <div>
                     <h3 className="font-semibold text-foreground">{inspection.extinguisherId}</h3>
-                    <div className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getConditionColor(inspection.condition)}`}>
+                    <div
+                      className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getConditionColor(
+                        inspection.condition
+                      )}`}
+                    >
                       {inspection.condition.charAt(0).toUpperCase() + inspection.condition.slice(1)}
                     </div>
                   </div>
@@ -89,7 +104,7 @@ export default function Inspections() {
                   {new Date(inspection.date).toLocaleDateString()}
                 </div>
               </div>
-              
+
               <div className="space-y-2 text-sm">
                 <div className="flex items-center space-x-2 text-muted-foreground">
                   <User className="w-4 h-4" />
@@ -106,14 +121,12 @@ export default function Inspections() {
                   </div>
                 )}
                 {inspection.description && (
-                  <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
-                    {inspection.description}
-                  </div>
+                  <div className="mt-2 p-2 bg-gray-50 rounded text-sm">{inspection.description}</div>
                 )}
                 {inspection.photoUrl && (
                   <div className="mt-2">
-                    <img 
-                      src={inspection.photoUrl} 
+                    <img
+                      src={inspection.photoUrl}
                       alt="Inspection photo"
                       className="w-full h-32 object-cover rounded-lg"
                     />
@@ -126,9 +139,7 @@ export default function Inspections() {
           <div className="inspection-card p-8 text-center">
             <CheckCircle className="w-16 h-16 mx-auto mb-4 text-gray-300" />
             <h3 className="text-lg font-semibold text-muted-foreground mb-2">No Inspections</h3>
-            <p className="text-sm text-muted-foreground">
-              Start by creating your first inspection from the home page.
-            </p>
+            <p className="text-sm text-muted-foreground">Start by creating your first inspection from the home page.</p>
           </div>
         )}
       </div>
