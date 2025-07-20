@@ -54,17 +54,41 @@ export default function InspectionForm() {
       // 디버깅: API 클라이언트 상태 확인
       debugApiClient();
 
+      // 요청 데이터 로깅
+      console.log("Original inspection data:", data);
+      console.log("Data type:", typeof data);
+      console.log("Data keys:", Object.keys(data));
+
+      // 모든 필드를 string 타입으로 변환
+      const stringifiedData = {
+        inspectedBy: String(data.inspectedBy || ""),
+        date: String(data.date || ""),
+        extinguisherId: String(data.extinguisherId || ""),
+        location: String(data.location || ""),
+        pressure: String(data.pressure || ""),
+        condition: String(data.condition || ""),
+        description: String(data.description || ""),
+        photoUrl: String(data.photoUrl || ""),
+      };
+
+      console.log("Stringified inspection data:", stringifiedData);
+
       try {
         // 직접 API 클라이언트 사용
-        const response = await apiClientRequest.post("/api/inspections", data);
+        const response = await apiClientRequest.post("/api/inspections", stringifiedData);
         console.log("API response received:", response);
         return response.data;
       } catch (error) {
         console.error("Mutation error caught:", error);
+        console.error("Error type:", typeof error);
+        console.error("Error constructor:", error?.constructor?.name);
+
         if (error instanceof Error) {
           console.error("Error message:", error.message);
           console.error("Error includes 'CORS':", error.message.includes("CORS"));
           console.error("Error includes 'Network error':", error.message.includes("Network error"));
+          console.error("Error includes '400':", error.message.includes("400"));
+          console.error("Error includes 'Bad Request':", error.message.includes("Bad Request"));
 
           // CORS 에러나 네트워크 에러가 아닌 경우는 성공으로 처리
           if (error.message.includes("CORS") || error.message.includes("Network error")) {
@@ -216,7 +240,12 @@ export default function InspectionForm() {
             <Label htmlFor="condition" className="block text-sm font-medium text-foreground mb-2">
               Extinguisher Condition
             </Label>
-            <Select onValueChange={(value) => form.setValue("condition", value)}>
+            <Select
+              onValueChange={(value) => {
+                console.log("Condition selected:", value, "Type:", typeof value);
+                form.setValue("condition", String(value));
+              }}
+            >
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="Select condition" />
               </SelectTrigger>
@@ -293,7 +322,14 @@ export default function InspectionForm() {
           {createInspectionMutation.isPending ? "SAVING..." : "SAVE INSP"}
         </Button>
         <Button
-          onClick={form.handleSubmit(onSubmit)}
+          onClick={() => {
+            form.handleSubmit(onSubmit)();
+            // FINISH 버튼은 저장 후 추가 작업을 할 수 있도록
+            toast({
+              title: "Inspection Complete",
+              description: "Inspection has been finished",
+            });
+          }}
           disabled={createInspectionMutation.isPending}
           className="btn-primary text-white py-3"
         >

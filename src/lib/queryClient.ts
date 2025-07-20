@@ -1,13 +1,6 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { apiRequest as apiClientRequest } from "./api-client";
 
-async function throwIfResNotOk(res: Response) {
-  if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
-  }
-}
-
 export async function apiRequest(method: string, url: string, data?: unknown | undefined): Promise<Response> {
   try {
     // 새로운 API 클라이언트 사용
@@ -60,7 +53,9 @@ export async function apiRequest(method: string, url: string, data?: unknown | u
     const errorResponse = new Response(JSON.stringify({ error: errorMessage }), {
       status: 500,
       statusText: "Internal Server Error",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+      },
     });
 
     throw errorResponse;
@@ -73,7 +68,7 @@ export const getQueryFn =
   async ({ queryKey }) => {
     try {
       // 새로운 API 클라이언트 사용
-      const url = `/${queryKey.join("/")}` as string;
+      const url = queryKey.join("/") as string;
       console.log("QueryFn - queryKey:", queryKey);
       console.log("QueryFn - built URL:", url);
       const response = await apiClientRequest.get<T>(url);
