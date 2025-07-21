@@ -120,7 +120,7 @@ export default function InspectionForm() {
           location: stringifiedData.location,
           condition: stringifiedData.condition as "excellent" | "good" | "fair" | "poor" | "needs-replacement",
           inspectedBy: stringifiedData.inspectedBy,
-          date: new Date().toISOString(),
+          date: stringifiedData.date, // 폼에서 받은 값을 그대로 사용
           pressure: stringifiedData.pressure,
           description: stringifiedData.description,
           photoUrl: stringifiedData.photoUrl,

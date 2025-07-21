@@ -98,9 +98,20 @@ export function useSyncOffline() {
           successCount++;
           console.log(`Successfully synced inspection: ${inspection.id}`);
         }
-      } catch (error) {
+      } catch (error: any) {
         errorCount++;
-        console.error(`Failed to sync inspection ${inspection.id}:`, error);
+        // 409 Conflict 처리
+        if (error?.response?.status === 409) {
+          console.warn(`409 Conflict for inspection ${inspection.id}, removing from queue.`);
+          removeFromOfflineQueue(inspection.id);
+          toast({
+            title: "Conflict",
+            description: `Inspection ${inspection.extinguisherId} already exists. Removed from queue.`,
+            variant: "destructive",
+          });
+        } else {
+          console.error(`Failed to sync inspection ${inspection.id}:`, error);
+        }
       }
     }
 
