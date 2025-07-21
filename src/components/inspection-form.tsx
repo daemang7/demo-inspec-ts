@@ -86,18 +86,15 @@ export default function InspectionForm() {
       if (isOffline) {
         console.log("Device is offline, saving data locally");
 
-        // 최소 필수 데이터 validation
+        // 최소 필수 데이터 validation (pressure 제외)
         const hasRequiredData =
-          stringifiedData.inspectedBy &&
-          stringifiedData.extinguisherId &&
-          stringifiedData.location &&
-          stringifiedData.pressure;
+          stringifiedData.inspectedBy && stringifiedData.extinguisherId && stringifiedData.location;
 
         if (!hasRequiredData) {
           console.log("Missing required data for offline save, skipping...");
           toast({
             title: "Missing Data",
-            description: "Please fill in all required fields (Inspected By, Extinguisher ID, Location, Pressure)",
+            description: "Please fill in all required fields (Inspected By, Extinguisher ID, Location)",
             variant: "destructive",
           });
           return {
@@ -108,10 +105,10 @@ export default function InspectionForm() {
         }
 
         // 로컬에 저장
-        const offlineId = saveOfflineInspection(stringifiedData);
+        const offlineId = await saveOfflineInspection(stringifiedData);
 
         // 동기화 큐에 추가
-        addToSyncQueue("/api/inspections", stringifiedData);
+        await addToSyncQueue("/api/inspections", stringifiedData);
 
         // Zustand store의 오프라인 대기열에 추가
         const inspectionData = {
@@ -147,18 +144,14 @@ export default function InspectionForm() {
         };
       }
 
-      // 최소 필수 데이터 validation (온라인 모드)
-      const hasRequiredData =
-        stringifiedData.inspectedBy &&
-        stringifiedData.extinguisherId &&
-        stringifiedData.location &&
-        stringifiedData.pressure;
+      // 최소 필수 데이터 validation (온라인 모드, pressure 제외)
+      const hasRequiredData = stringifiedData.inspectedBy && stringifiedData.extinguisherId && stringifiedData.location;
 
       if (!hasRequiredData) {
         console.log("Missing required data for online save, skipping...");
         toast({
           title: "Missing Data",
-          description: "Please fill in all required fields (Inspected By, Extinguisher ID, Location, Pressure)",
+          description: "Please fill in all required fields (Inspected By, Extinguisher ID, Location)",
           variant: "destructive",
         });
         return {
@@ -189,18 +182,15 @@ export default function InspectionForm() {
           if (error.message.includes("CORS") || error.message.includes("Network error")) {
             console.log("Network error detected, saving offline");
 
-            // 최소 필수 데이터 validation (네트워크 에러 시)
+            // 최소 필수 데이터 validation (네트워크 에러 시, pressure 제외)
             const hasRequiredData =
-              stringifiedData.inspectedBy &&
-              stringifiedData.extinguisherId &&
-              stringifiedData.location &&
-              stringifiedData.pressure;
+              stringifiedData.inspectedBy && stringifiedData.extinguisherId && stringifiedData.location;
 
             if (!hasRequiredData) {
               console.log("Missing required data for offline save due to network error, skipping...");
               toast({
                 title: "Missing Data",
-                description: "Please fill in all required fields (Inspected By, Extinguisher ID, Location, Pressure)",
+                description: "Please fill in all required fields (Inspected By, Extinguisher ID, Location)",
                 variant: "destructive",
               });
               return {
@@ -261,7 +251,7 @@ export default function InspectionForm() {
 
       // 오프라인 모드에서 필수 데이터 누락 시 에러 메시지
       const errorMessage = isOffline
-        ? "Please fill in all required fields (Inspected By, Extinguisher ID, Location, Pressure)"
+        ? "Please fill in all required fields (Inspected By, Extinguisher ID, Location)"
         : error instanceof Error
         ? error.message
         : "Failed to save inspection";

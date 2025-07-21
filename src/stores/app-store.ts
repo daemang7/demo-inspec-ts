@@ -151,9 +151,8 @@ export const useAppStore = create<AppState>()(
       addToOfflineQueue: (inspection: Inspection) => {
         console.log("addToOfflineQueue called with:", inspection);
 
-        // 최소 필수 데이터 확인
-        const hasRequiredData =
-          inspection.inspectedBy && inspection.extinguisherId && inspection.location && inspection.pressure;
+        // 최소 필수 데이터 확인 (pressure 제외)
+        const hasRequiredData = inspection.inspectedBy && inspection.extinguisherId && inspection.location;
 
         if (!hasRequiredData) {
           console.log("Skipping inspection with missing required data:", inspection);

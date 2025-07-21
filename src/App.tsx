@@ -1,5 +1,3 @@
-import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,19 +13,8 @@ import Inspections from "@/pages/inspections";
 import Scan from "@/pages/scan";
 import Report from "@/pages/report";
 import Settings from "@/pages/settings";
-
-function Router() {
-  return (
-    <Switch>
-      <Route path="/" component={Home} />
-      <Route path="/inspections" component={Inspections} />
-      <Route path="/scan" component={Scan} />
-      <Route path="/report" component={Report} />
-      <Route path="/settings" component={Settings} />
-      <Route component={NotFound} />
-    </Switch>
-  );
-}
+import { HashRouter, Routes, Route } from "react-router-dom";
+import { queryClient } from "./lib/queryClient";
 
 function SyncAnimationWrapper() {
   const { syncStatus } = useSyncOffline();
@@ -46,12 +33,21 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <ApiIpGuard showModalOnEmpty={true} forceShowOnStart={true}>
-          <Router />
+        <ApiIpGuard>
+          <HashRouter>
+            <SyncAnimationWrapper />
+            <NetworkToggle />
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/inspections" element={<Inspections />} />
+              <Route path="/scan" element={<Scan />} />
+              <Route path="/report" element={<Report />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <Toaster />
+          </HashRouter>
         </ApiIpGuard>
-        <NetworkToggle />
-        <SyncAnimationWrapper />
       </TooltipProvider>
     </QueryClientProvider>
   );

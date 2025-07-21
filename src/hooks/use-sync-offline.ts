@@ -21,18 +21,18 @@ export function useSyncOffline() {
   }, [isOffline]);
 
   const syncOfflineData = async () => {
-    const syncQueue = getSyncQueue();
+    const syncQueueArr = await getSyncQueue();
 
-    if (syncQueue.length === 0) {
+    if (syncQueueArr.length === 0) {
       return;
     }
 
-    console.log(`Syncing ${syncQueue.length} offline items...`);
+    console.log(`Syncing ${syncQueueArr.length} offline items...`);
 
     let successCount = 0;
     let errorCount = 0;
 
-    for (const item of syncQueue) {
+    for (const item of syncQueueArr) {
       try {
         console.log(`Syncing item: ${item.id} to ${item.endpoint}`);
 
@@ -40,7 +40,7 @@ export function useSyncOffline() {
 
         if (response.data) {
           // 성공적으로 동기화된 항목 제거
-          removeFromSyncQueue(item.id);
+          await removeFromSyncQueue(item.id);
           successCount++;
           console.log(`Successfully synced item: ${item.id}`);
         }
