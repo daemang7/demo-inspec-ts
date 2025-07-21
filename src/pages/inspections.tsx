@@ -1,23 +1,59 @@
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { CheckCircle, AlertTriangle, Calendar, MapPin, User } from "lucide-react";
 import MobileLayout from "@/components/mobile-layout";
-import { Inspection } from "@shared/schema";
+import { useAppStore } from "@/stores";
 
 export default function Inspections() {
+  const { api_ip } = useAppStore();
   const {
     data: inspections,
     isLoading,
     error,
-  } = useQuery<Inspection[]>({
-    queryKey: ["/api/inspections"],
+    refetch,
+  } = useQuery<any[]>({
+    queryKey: ["api", "inspections", api_ip],
+    queryFn: async () => {
+      const apiUrl = api_ip ? `http://${api_ip}/api/inspections` : "/api/inspections";
+      const res = await fetch(apiUrl);
+      return res.json();
+    },
+    staleTime: 0,
   });
 
-  console.log("Inspections - inspections data:", inspections);
-  console.log("Inspections - isLoading:", isLoading);
-  console.log("Inspections - error:", error);
+  // api_ip가 바뀔 때마다 refetch
+  useEffect(() => {
+    if (api_ip) refetch();
+  }, [api_ip, refetch]);
+
+  // 화면이 활성화될 때마다 refetch
+  useEffect(() => {
+    const handleFocus = () => {
+      refetch();
+    };
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [refetch]);
+
+  // fetch 디버깅: 실제로 어디로 요청되고, 응답이 뭔지 콘솔에 찍기
+  useEffect(() => {
+    const apiUrl = api_ip ? `http://${api_ip}/api/inspections` : "/api/inspections";
+    fetch(apiUrl)
+      .then((res) => {
+        console.log("fetch status", res.status, res.url);
+        return res.json();
+      })
+      .then((data) => {
+        console.log("실제 fetch 결과", data);
+      })
+      .catch((e) => {
+        console.error("fetch error", e);
+      });
+  }, [api_ip]);
 
   // inspections가 undefined일 수 있으므로 안전하게 처리
   const inspectionsArray = Array.isArray(inspections) ? inspections : [];
+  console.log("inspectionsArray", inspectionsArray);
 
   const getConditionColor = (condition: string) => {
     switch (condition) {
@@ -84,8 +120,11 @@ export default function Inspections() {
             </div>
           ))
         ) : inspectionsArray.length > 0 ? (
-          inspectionsArray.map((inspection) => (
-            <div key={inspection.id} className="inspection-card p-4">
+          inspectionsArray.map((inspection, idx) => (
+            <div
+              key={inspection.id || `${inspection.extinguisherId}-${inspection.date}-${idx}`}
+              className="inspection-card p-4"
+            >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center space-x-3">
                   {getStatusIcon(inspection.condition)}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -10,10 +10,16 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useOffline } from "@/hooks/use-offline";
+import { useSyncOffline } from "@/hooks/use-sync-offline";
+
 import { apiRequest } from "@/lib/queryClient";
 import { debugApiClient, apiRequest as apiClientRequest } from "@/lib/api-client";
+import { saveOfflineInspection, addToSyncQueue } from "@/lib/offline-storage";
+import { useAppStore } from "@/stores";
 import QRScannerModal from "./qr-scanner-modal";
 import CameraModal from "./camera-modal";
+import OfflineModal from "./offline-modal";
 
 const inspectionSchema = z.object({
   inspectedBy: z.string().min(1, "Inspector name is required"),
@@ -34,6 +40,9 @@ export default function InspectionForm() {
   const [capturedPhoto, setCapturedPhoto] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isOffline = useOffline();
+  const { offline_mode, addToOfflineQueue } = useAppStore();
+  useSyncOffline(); // 오프라인 데이터 자동 동기화
 
   const form = useForm<InspectionFormData>({
     resolver: zodResolver(inspectionSchema),
@@ -73,6 +82,92 @@ export default function InspectionForm() {
 
       console.log("Stringified inspection data:", stringifiedData);
 
+      // 오프라인 상태 확인
+      if (isOffline) {
+        console.log("Device is offline, saving data locally");
+
+        // 최소 필수 데이터 validation
+        const hasRequiredData =
+          stringifiedData.inspectedBy &&
+          stringifiedData.extinguisherId &&
+          stringifiedData.location &&
+          stringifiedData.pressure;
+
+        if (!hasRequiredData) {
+          console.log("Missing required data for offline save, skipping...");
+          toast({
+            title: "Missing Data",
+            description: "Please fill in all required fields (Inspected By, Extinguisher ID, Location, Pressure)",
+            variant: "destructive",
+          });
+          return {
+            success: false,
+            message: "Missing required data",
+            synced: false,
+          };
+        }
+
+        // 로컬에 저장
+        const offlineId = saveOfflineInspection(stringifiedData);
+
+        // 동기화 큐에 추가
+        addToSyncQueue("/api/inspections", stringifiedData);
+
+        // Zustand store의 오프라인 대기열에 추가
+        const inspectionData = {
+          id: offlineId,
+          extinguisherId: stringifiedData.extinguisherId,
+          location: stringifiedData.location,
+          condition: stringifiedData.condition as "excellent" | "good" | "fair" | "poor" | "needs-replacement",
+          inspectedBy: stringifiedData.inspectedBy,
+          date: new Date().toISOString(),
+          pressure: stringifiedData.pressure,
+          description: stringifiedData.description,
+          photoUrl: stringifiedData.photoUrl,
+        };
+
+        console.log("Adding to offline queue:", inspectionData);
+        addToOfflineQueue(inspectionData);
+        console.log("Added to offline queue successfully");
+
+        console.log("Offline save completed successfully - data will be processed in onSuccess");
+        toast({
+          title: "Saved Offline",
+          description: "Inspection data saved locally. Will sync when connection returns.",
+          duration: 3000,
+        });
+
+        // 오프라인 모드에서도 onSuccess가 호출되도록 성공 데이터 반환
+        return {
+          success: true,
+          message: "Saved offline",
+          offlineId,
+          synced: false,
+          data: inspectionData, // onSuccess에서 사용할 수 있도록 데이터 포함
+        };
+      }
+
+      // 최소 필수 데이터 validation (온라인 모드)
+      const hasRequiredData =
+        stringifiedData.inspectedBy &&
+        stringifiedData.extinguisherId &&
+        stringifiedData.location &&
+        stringifiedData.pressure;
+
+      if (!hasRequiredData) {
+        console.log("Missing required data for online save, skipping...");
+        toast({
+          title: "Missing Data",
+          description: "Please fill in all required fields (Inspected By, Extinguisher ID, Location, Pressure)",
+          variant: "destructive",
+        });
+        return {
+          success: false,
+          message: "Missing required data",
+          synced: false,
+        };
+      }
+
       try {
         // 직접 API 클라이언트 사용
         const response = await apiClientRequest.post("/api/inspections", stringifiedData);
@@ -90,10 +185,47 @@ export default function InspectionForm() {
           console.error("Error includes '400':", error.message.includes("400"));
           console.error("Error includes 'Bad Request':", error.message.includes("Bad Request"));
 
-          // CORS 에러나 네트워크 에러가 아닌 경우는 성공으로 처리
+          // 네트워크 에러인 경우 오프라인 저장
           if (error.message.includes("CORS") || error.message.includes("Network error")) {
-            throw error;
+            console.log("Network error detected, saving offline");
+
+            // 최소 필수 데이터 validation (네트워크 에러 시)
+            const hasRequiredData =
+              stringifiedData.inspectedBy &&
+              stringifiedData.extinguisherId &&
+              stringifiedData.location &&
+              stringifiedData.pressure;
+
+            if (!hasRequiredData) {
+              console.log("Missing required data for offline save due to network error, skipping...");
+              toast({
+                title: "Missing Data",
+                description: "Please fill in all required fields (Inspected By, Extinguisher ID, Location, Pressure)",
+                variant: "destructive",
+              });
+              return {
+                success: false,
+                message: "Missing required data",
+                synced: false,
+              };
+            }
+
+            const offlineId = saveOfflineInspection(stringifiedData);
+            addToSyncQueue("/api/inspections", stringifiedData);
+
+            toast({
+              title: "Network Error",
+              description: "Saved offline due to network issues. Will sync when connection returns.",
+            });
+
+            return {
+              success: true,
+              message: "Saved offline due to network error",
+              offlineId,
+              synced: false,
+            };
           }
+
           // 기타 에러는 성공으로 처리 (서버가 응답했다는 의미)
           console.warn("Non-critical error, treating as success:", error.message);
           return { success: true, message: "Request processed" };
@@ -103,22 +235,40 @@ export default function InspectionForm() {
     },
     onSuccess: (data) => {
       console.log("Mutation success, invalidating queries:", data);
-      queryClient.invalidateQueries({ queryKey: ["/api/inspections"] });
 
-      // 캐시 무효화 후 즉시 refetch
-      queryClient.refetchQueries({ queryKey: ["/api/inspections"] });
+      // 온라인 모드일 때만 쿼리 무효화 및 강제 리페치
+      if (!isOffline) {
+        console.log("Online mode - invalidating and refetching queries");
+        queryClient.invalidateQueries({ queryKey: ["api", "inspections"] });
+        queryClient.refetchQueries({ queryKey: ["api", "inspections"] });
+      } else {
+        console.log("Offline mode - skipping query invalidation");
+      }
 
-      toast({
-        title: "Success",
-        description: "Inspection saved successfully",
-      });
+      // 성공 메시지 표시 (오프라인 모드에서는 이미 토스트가 표시되었으므로 중복 방지)
+      if (!isOffline) {
+        toast({
+          title: "Success",
+          description: "Inspection saved successfully",
+        });
+      }
+
+      // 폼 클리어
       clearForm();
     },
     onError: (error) => {
       console.error("Inspection save error:", error);
+
+      // 오프라인 모드에서 필수 데이터 누락 시 에러 메시지
+      const errorMessage = isOffline
+        ? "Please fill in all required fields (Inspected By, Extinguisher ID, Location, Pressure)"
+        : error instanceof Error
+        ? error.message
+        : "Failed to save inspection";
+
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to save inspection",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -151,11 +301,24 @@ export default function InspectionForm() {
   };
 
   const onSubmit = (data: InspectionFormData) => {
+    // 오프라인 상태일 때도 저장 진행 (모달은 별도로 처리)
     createInspectionMutation.mutate(data);
   };
 
   return (
     <>
+      {/* 오프라인 상태 표시 */}
+      {isOffline && (
+        <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+            <span className="text-sm font-medium text-orange-800">
+              You are currently offline. SAVE INSP will save data locally.
+            </span>
+          </div>
+        </div>
+      )}
+
       <div className="inspection-card p-4">
         <h3 className="font-semibold text-foreground mb-4 flex items-center">
           <ClipboardCheck className="w-5 h-5 text-primary mr-2" />
